@@ -34,6 +34,7 @@ public class LuxLoomPlugin implements Plugin<Project> {
             Path cacheDir = project.getBuildDir().toPath().resolve("lux-cache");
             Path rawClient = cacheDir.resolve("minecraft-" + mcVersion + "-raw.jar");
             Path mappedClient = cacheDir.resolve("minecraft-" + mcVersion + "-lux.jar");
+            Path sourcesJar = cacheDir.resolve("minecraft-" + mcVersion + "-sources.jar");
 
             try {
                 Files.createDirectories(cacheDir);
@@ -49,7 +50,13 @@ public class LuxLoomPlugin implements Plugin<Project> {
                     LuxRemapper.remap(rawClient, mappedClient, mappingFile);
                 }
 
+                if (!Files.exists(sourcesJar)) {
+                   project.getLogger().lifecycle(":Decompiling Minecraft (This may take a few minutes...)");
+                   LuxDecompiler.decompile(mappedClient, sourcesJar);
+                }
+
                 project.getDependencies().add("implementation", project.files(mappedClient));
+                project.getArtifacts().add("implementation", sourcesJar);
 
             } catch (Exception e) {
                 project.getLogger().error("LuxLoom failed to prepare environment", e);
