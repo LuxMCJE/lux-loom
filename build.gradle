@@ -1,0 +1,22 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'maven-publish'
+}
+
+group = 'net.luxmcje'
+version = '0.1.0'
+
+gradlePlugin {
+    plugins {
+        luxLoom {
+            id = 'net.luxmcje.loom'
+            implementationClass = 'net.luxmcje.loom.LuxLoomPlugin'
+        }
+    }
+}
+
+dependencies {
+    implementation 'net.fabricmc:tiny-remapper:0.8.2'
+    implementation 'net.fabricmc:access-widener:2.1.0'
+    implementation 'commons-io:commons-io:2.11.0'
+}
