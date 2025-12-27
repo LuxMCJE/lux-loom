@@ -11,6 +11,8 @@ gradlePlugin {
         luxLoom {
             id = 'net.luxmcje.loom'
             implementationClass = 'net.luxmcje.loom.LuxLoomPlugin'
+            displayName = 'LuxLoom Development Toolchain'
+            description = 'The official build tool for LuxLoader mods.'
         }
     }
 }
