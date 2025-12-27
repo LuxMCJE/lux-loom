@@ -28,5 +28,32 @@ public class LuxLoomPlugin implements Plugin<Project> {
         });
 
         project.getLogger().lifecycle("[LuxLoom] Repositories and Configurations initialized.");
+        
+        project.afterEvaluate(p -> {
+            String mcVersion = "1.20.1";
+            Path cacheDir = project.getBuildDir().toPath().resolve("lux-cache");
+            Path rawClient = cacheDir.resolve("minecraft-" + mcVersion + "-raw.jar");
+            Path mappedClient = cacheDir.resolve("minecraft-" + mcVersion + "-lux.jar");
+
+            try {
+                Files.createDirectories(cacheDir);
+        
+                if (!Files.exists(rawClient)) {
+                    project.getLogger().lifecycle(":Downloading Minecraft " + mcVersion);
+                    MinecraftDownloader.downloadClient(mcVersion, rawClient);
+                 }
+
+                if (!Files.exists(mappedClient)) {
+                    project.getLogger().lifecycle(":Remapping Minecraft to Lux Mappings");
+                    Path mappingFile = project.getConfigurations().getByName("mappings").getSingleFile().toPath();
+                    LuxRemapper.remap(rawClient, mappedClient, mappingFile);
+                }
+
+                project.getDependencies().add("implementation", project.files(mappedClient));
+
+            } catch (Exception e) {
+                project.getLogger().error("LuxLoom failed to prepare environment", e);
+            }
+        });
     }
 }
