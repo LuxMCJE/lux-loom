@@ -3,6 +3,11 @@ plugins {
     id 'maven-publish'
 }
 
+repositories {
+    mavenCentral()
+    maven { url 'https://maven.vineflower.org/releases' }
+}
+
 group = project.property('module.group')
 version = project.property('module.version')
 
