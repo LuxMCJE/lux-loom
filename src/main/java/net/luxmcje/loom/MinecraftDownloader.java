@@ -1,5 +1,7 @@
 package net.luxmcje.loom;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.InputStreamReader;
@@ -13,17 +15,20 @@ public class MinecraftDownloader {
 
     public static void downloadClient(String version, Path outputPath) throws Exception {
         JsonObject manifest = JsonParser.parseReader(new InputStreamReader(new URL(VERSION_MANIFEST).openStream())).getAsJsonObject();
-        String versionUrl = "";
+        JsonArray versions = manifest.getAsJsonArray("versions");
+        String versionUrl = null;
 
-        for (var v : manifest.getAsJsonArray("versions")) {
+        for (JsonElement v : versions) {
             if (v.getAsJsonObject().get("id").getAsString().equals(version)) {
                 versionUrl = v.getAsJsonObject().get("url").getAsString();
                 break;
             }
         }
 
-        JsonObject versionJson = JsonParser.parseReader(new InputStreamReader(new URL(versionUrl).openStream())).getAsJsonObject();
-        String clientUrl = versionJson.getAsJsonObject("downloads").getAsJsonObject("client").get("url").getAsString();
+        if (versionUrl == null) throw new RuntimeException("Version " + version + " not found!");
+
+        JsonObject versionData = JsonParser.parseReader(new InputStreamReader(new URL(versionUrl).openStream())).getAsJsonObject();
+        String clientUrl = versionData.getAsJsonObject("downloads").getAsJsonObject("client").get("url").getAsString();
 
         try (var in = new URL(clientUrl).openStream()) {
             Files.copy(in, outputPath, StandardCopyOption.REPLACE_EXISTING);
