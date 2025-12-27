@@ -3,6 +3,9 @@ package net.luxmcje.loom;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.File;
 
 public class LuxLoomPlugin implements Plugin<Project> {
     @Override
@@ -11,8 +14,8 @@ public class LuxLoomPlugin implements Plugin<Project> {
         project.getLogger().lifecycle("   Initializing LuxLoom Toolchain      ");
         project.getLogger().lifecycle("---------------------------------------");
 
-        Configuration minecraftConfig = project.getConfigurations().create("minecraft");
-        Configuration mappingsConfig = project.getConfigurations().create("mappings");
+        Configuration minecraftConfig = project.getConfigurations().maybeCreate("minecraft");
+        Configuration mappingsConfig = project.getConfigurations().maybeCreate("mappings");
         
         minecraftConfig.setCanBeResolved(true);
         mappingsConfig.setCanBeResolved(true);
@@ -27,11 +30,9 @@ public class LuxLoomPlugin implements Plugin<Project> {
             repo.setUrl("https://libraries.minecraft.net/");
         });
 
-        project.getLogger().lifecycle("[LuxLoom] Repositories and Configurations initialized.");
-        
         project.afterEvaluate(p -> {
             String mcVersion = "1.20.1";
-            Path cacheDir = project.getBuildDir().toPath().resolve("lux-cache");
+            Path cacheDir = project.getLayout().getBuildDirectory().getAsFile().get().toPath().resolve("lux-cache");
             Path rawClient = cacheDir.resolve("minecraft-" + mcVersion + "-raw.jar");
             Path mappedClient = cacheDir.resolve("minecraft-" + mcVersion + "-lux.jar");
             Path sourcesJar = cacheDir.resolve("minecraft-" + mcVersion + "-sources.jar");
@@ -40,23 +41,26 @@ public class LuxLoomPlugin implements Plugin<Project> {
                 Files.createDirectories(cacheDir);
         
                 if (!Files.exists(rawClient)) {
-                    project.getLogger().lifecycle(":Downloading Minecraft " + mcVersion);
+                    project.getLogger().lifecycle("[LuxLoom] Downloading Minecraft " + mcVersion);
                     MinecraftDownloader.downloadClient(mcVersion, rawClient);
-                 }
+                }
 
                 if (!Files.exists(mappedClient)) {
-                    project.getLogger().lifecycle(":Remapping Minecraft to Lux Mappings");
-                    Path mappingFile = project.getConfigurations().getByName("mappings").getSingleFile().toPath();
-                    LuxRemapper.remap(rawClient, mappedClient, mappingFile);
+                    project.getLogger().lifecycle("[LuxLoom] Remapping Minecraft to Lux Mappings");
+                    File mappingFile = project.getConfigurations().getByName("mappings").getSingleFile();
+                    
+                    LuxRemapper remapper = new LuxRemapper();
+                    remapper.loadTinyMappings(mappingFile);
+                    remapper.remapJar(rawClient.toFile(), mappedClient.toFile());
                 }
 
                 if (!Files.exists(sourcesJar)) {
-                   project.getLogger().lifecycle(":Decompiling Minecraft (This may take a few minutes...)");
+                   project.getLogger().lifecycle("[LuxLoom] Decompiling Minecraft...");
                    LuxDecompiler.decompile(mappedClient, sourcesJar);
                 }
 
                 project.getDependencies().add("implementation", project.files(mappedClient));
-                project.getArtifacts().add("implementation", sourcesJar);
+                project.getLogger().lifecycle("[LuxLoom] Environment is ready!");
 
             } catch (Exception e) {
                 project.getLogger().error("LuxLoom failed to prepare environment", e);
