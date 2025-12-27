@@ -9,7 +9,6 @@ import java.nio.file.Path;
 public class LuxRemapper {
 
     public static void remap(Path inputJar, Path outputJar, Path mappingFile) {
-        // 1. إعداد أداة التحويل (Remapper) باستخدام قاموس Lux (Tiny)
         TinyRemapper remapper = TinyRemapper.newRemapper()
                 .withMappings(TinyUtils.createTinyMappingProvider(mappingFile, "official", "named"))
                 .build();
