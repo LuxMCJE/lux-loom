@@ -7,6 +7,8 @@ import org.objectweb.asm.commons.SimpleRemapper;
 import java.io.*;
 import java.util.*;
 import java.util.jar.*;
+import java.nio.file.Files;
+import java.util.List;
 
 public class LuxRemapper {
     private final Map<String, String> mappingMap = new HashMap<>();
