@@ -65,21 +65,21 @@ public class LuxRemapper {
     }
 
     public void loadTinyMappings(File tinyFile) throws IOException {
-    InputStream is = new FileInputStream(tinyFile);
+        InputStream is = new FileInputStream(tinyFile);
     
-    if (tinyFile.getName().endsWith(".gz")) {
-        is = new GZIPInputStream(is);
-    }
-
-    BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-    String line;
-    while ((line = reader.readLine()) != null) {
-        if (line.trim().isEmpty() || line.startsWith("#")) continue;
-        String[] parts = line.split("\t");
-        if (parts.length >= 3 && (parts[0].equals("CLASS") || parts[0].equals("c"))) {
-            mappingMap.put(parts[1], parts[parts.length - 1]);
+        if (tinyFile.getName().endsWith(".gz")) {
+            is = new GZIPInputStream(is);
         }
-    }
-    reader.close();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            if (line.trim().isEmpty() || line.startsWith("#")) continue;
+            String[] parts = line.split("\t");
+            if (parts.length >= 3 && (parts[0].equals("CLASS") || parts[0].equals("c"))) {
+                mappingMap.put(parts[1], parts[parts.length - 1]);
+            }
+        }
+        reader.close();
     }    
 }
