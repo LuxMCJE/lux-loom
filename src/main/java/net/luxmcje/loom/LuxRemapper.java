@@ -9,12 +9,13 @@ import java.util.*;
 import java.util.jar.*;
 import java.nio.file.Files;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 public class LuxRemapper {
     private final Map<String, String> mappingMap = new HashMap<>();
 
     public void loadTinyMappings(File tinyFile) throws IOException {
-        List<String> lines = Files.readAllLines(tinyFile.toPath());
+        List<String> lines = Files.readAllLines(tinyFile.toPath(), StandardCharsets.UTF_8)
         for (String line : lines) {
             String[] parts = line.split("\t");
             if (parts[0].equals("CLASS")) {
