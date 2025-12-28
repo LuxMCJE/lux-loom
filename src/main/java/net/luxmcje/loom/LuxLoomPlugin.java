@@ -14,6 +14,12 @@ public class LuxLoomPlugin implements Plugin<Project> {
         project.getLogger().lifecycle("   Initializing LuxLoom Toolchain      ");
         project.getLogger().lifecycle("---------------------------------------");
 
+        project.getDependencies().getExtensions().add("minecraft", new Object() {
+            public String call(String version) {
+                return "com.mojang:minecraft:" + version;
+            }
+        });
+
         Configuration minecraftConfig = project.getConfigurations().maybeCreate("minecraft");
         Configuration mappingsConfig = project.getConfigurations().maybeCreate("mappings");
         
@@ -31,17 +37,11 @@ public class LuxLoomPlugin implements Plugin<Project> {
         });
 
         project.afterEvaluate(p -> {
-            String mcVersion = "1.20.1";
+            String mcVersion = "1.20.1"; 
             Path cacheDir = project.getLayout().getBuildDirectory().getAsFile().get().toPath().resolve("lux-cache");
             Path rawClient = cacheDir.resolve("minecraft-" + mcVersion + "-raw.jar");
             Path mappedClient = cacheDir.resolve("minecraft-" + mcVersion + "-lux.jar");
             Path sourcesJar = cacheDir.resolve("minecraft-" + mcVersion + "-sources.jar");
-
-            project.getDependencies().getExtensions().add("minecraft", new Object() {
-                public String call(String version) {
-                    return "com.mojang:minecraft:" + version;
-                }
-            });
 
             try {
                 Files.createDirectories(cacheDir);
@@ -69,7 +69,7 @@ public class LuxLoomPlugin implements Plugin<Project> {
                 project.getLogger().lifecycle("[LuxLoom] Environment is ready!");
 
             } catch (Exception e) {
-                project.getLogger().error("LuxLoom failed to prepare environment", e);
+                project.getLogger().error("LuxLoom failed to prepare environment: " + e.getMessage());
             }
         });
     }
