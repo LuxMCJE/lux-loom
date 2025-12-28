@@ -26,7 +26,6 @@ public class LuxRemapper {
                 if (line.trim().isEmpty() || line.startsWith("#")) continue;
                 
                 String[] parts = line.split("\t");
-                // دعم Tiny v1 (CLASS) و Tiny v2 (c)
                 if (parts.length >= 3 && (parts[0].equals("CLASS") || parts[0].equals("c"))) {
                     String officialName = parts[1];
                     String namedName = parts[parts.length - 1];
@@ -37,36 +36,37 @@ public class LuxRemapper {
     }
 
     public void remapJar(File inputJar, File outputJar) throws IOException {
-        SimpleRemapper remapper = new SimpleRemapper(mappingMap);
-        
-        try (JarFile jarFile = new JarFile(inputJar);
-             JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
-            
-            Enumeration<JarEntry> entries = jarFile.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                if (entry.isDirectory()) continue;
-
-                byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
-
-                if (entry.getName().endsWith(".class")) {
-                   ClassReader reader = new ClassReader(bytes);
-                   ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES); 
-                   ClassVisitor cv = new ClassRemapper(writer, remapper);
-                   reader.accept(cv, 0);
+    SimpleRemapper remapper = new SimpleRemapper(mappingMap);
     
-                   String internalName = entry.getName().replace(".class", "");
-                   String mappedName = remapper.map(internalName);
-                   if (mappedName == null) mappedName = internalName;
-    
-                   jos.putNextEntry(new JarEntry(mappedName + ".class"));
-                   jos.write(writer.toByteArray());
-                } else {
-                    jos.putNextEntry(new JarEntry(entry.getName()));
-                    jos.write(bytes);
-                }
-                jos.closeEntry();
-            }
+    try (JarFile jarFile = new JarFile(inputJar);
+         JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) 
+
+        Enumeration<JarEntry> entries = jarFile.entries();
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry.isDirectory()) continue;
+
+            byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
+
+            if (entry.getName().endsWith(".class")) {
+                ClassReader reader = new ClassReader(bytes);
+                ClassWriter writer = new ClassWriter(0); 
+                ClassVisitor cv = new ClassRemapper(writer, remapper);
+                reader.accept(cv, ClassReader.EXPAND_FRAMES);
+                
+                String internalName = entry.getName().replace(".class", "");
+                String mappedName = remapper.map(internalName);
+                if (mappedName == null) mappedName = internalName;
+                
+                jos.putNextEntry(new JarEntry(mappedName + ".class"));
+                jos.write(writer.toByteArray());
+            } else {
+                jos.putNextEntry(new JarEntry(entry.getName()));
+                jos.write(bytes);
+              }
+            jos.closeEntry();
         }
+         }
     }
+
 }
