@@ -34,24 +34,26 @@ public class LuxRemapper {
             }
         }
     }
-
+    
     public void remapJar(File inputJar, File outputJar) throws IOException {
-        SimpleRemapper remapper = new SimpleRemapper(mappingMap);
+    SimpleRemapper remapper = new SimpleRemapper(mappingMap);
+    
+    try (JarFile jarFile = new JarFile(inputJar);
+         JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
         
-        try (JarFile jarFile = new JarFile(inputJar);
-             JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) { 
+        Enumeration<JarEntry> entries = jarFile.entries();
+        while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            if (entry.isDirectory()) continue;
 
-            Enumeration<JarEntry> entries = jarFile.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                if (entry.isDirectory()) continue;
-
-                byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
+            try (InputStream is = jarFile.getInputStream(entry)) {
+                byte[] bytes = is.readAllBytes();
 
                 if (entry.getName().endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(0); 
+                    ClassWriter writer = new ClassWriter(reader, 0); 
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
+                    
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
                     
                     String internalName = entry.getName().replace(".class", "");
@@ -61,10 +63,13 @@ public class LuxRemapper {
                     jos.putNextEntry(new JarEntry(mappedName + ".class"));
                     jos.write(writer.toByteArray());
                 } else {
-                    jos.putNextEntry(new JarEntry(entry.getName()));
-                    jos.write(bytes);
-                }
+                    if (!entry.getName().equals("META-INF/MANIFEST.MF")) {
+                        jos.putNextEntry(new JarEntry(entry.getName()));
+                        jos.write(bytes);
+                        }
+                    }
                 jos.closeEntry();
+                }
             }
         }
     }
