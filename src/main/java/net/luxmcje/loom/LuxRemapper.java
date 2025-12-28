@@ -56,9 +56,13 @@ public class LuxRemapper {
                     reader.accept(cv, 0);
     
                     String internalName = entry.getName().replace(".class", "");
-                    String remappedName = remapper.map(internalName) + ".class";
+                    String mappedName = remapper.map(internalName);
+                    if (mappedName == null) {
+                        mappedName = internalName;
+                    }
+                    String finalPath = mappedName + ".class";
     
-                    jos.putNextEntry(new JarEntry(remappedName));
+                    jos.putNextEntry(new JarEntry(finalPath));
                     jos.write(writer.toByteArray());
                 } else {
                     jos.putNextEntry(new JarEntry(entry.getName()));
