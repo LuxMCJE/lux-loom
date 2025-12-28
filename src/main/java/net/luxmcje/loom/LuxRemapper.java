@@ -15,11 +15,16 @@ public class LuxRemapper {
     private final Map<String, String> mappingMap = new HashMap<>();
 
     public void loadTinyMappings(File tinyFile) throws IOException {
-        List<String> lines = Files.readAllLines(tinyFile.toPath(), StandardCharsets.UTF_8)
+        List<String> lines = Files.readAllLines(tinyFile.toPath(), StandardCharsets.UTF_8);
+        
         for (String line : lines) {
+            if (line.trim().isEmpty() || line.startsWith("#")) continue;
+            
             String[] parts = line.split("\t");
-            if (parts[0].equals("CLASS")) {
-                mappingMap.put(parts[1], parts[3]);
+            if (parts.length >= 3 && (parts[0].equals("CLASS") || parts[0].equals("c"))) {
+                String officialName = parts[1];
+                String namedName = parts[parts.length - 1];
+                mappingMap.put(officialName, namedName);
             }
         }
     }
@@ -33,6 +38,9 @@ public class LuxRemapper {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
+            
+                if (entry.isDirectory()) continue;
+
                 byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
 
                 if (entry.getName().endsWith(".class")) {
@@ -41,14 +49,16 @@ public class LuxRemapper {
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
                     reader.accept(cv, 0);
                     
-                    String newName = mappingMap.getOrDefault(entry.getName().replace(".class", ""), 
-                                                            entry.getName().replace(".class", "")) + ".class";
-                    jos.putNextEntry(new JarEntry(newName));
+                    String internalName = entry.getName().replace(".class", "");
+                    String remappedName = mappingMap.getOrDefault(internalName, internalName) + ".class";
+                    
+                    jos.putNextEntry(new JarEntry(remappedName));
                     jos.write(writer.toByteArray());
                 } else {
                     jos.putNextEntry(new JarEntry(entry.getName()));
                     jos.write(bytes);
                 }
+                jos.closeEntry();
             }
         }
     }
