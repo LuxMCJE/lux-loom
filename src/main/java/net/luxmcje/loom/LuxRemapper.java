@@ -50,20 +50,17 @@ public class LuxRemapper {
                 byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
 
                 if (entry.getName().endsWith(".class")) {
-                    ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); 
-                    ClassVisitor cv = new ClassRemapper(writer, remapper);
-                    reader.accept(cv, 0);
+                   ClassReader reader = new ClassReader(bytes);
+                   ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_FRAMES); 
+                   ClassVisitor cv = new ClassRemapper(writer, remapper);
+                   reader.accept(cv, 0);
     
-                    String internalName = entry.getName().replace(".class", "");
-                    String mappedName = remapper.map(internalName);
-                    if (mappedName == null) {
-                        mappedName = internalName;
-                    }
-                    String finalPath = mappedName + ".class";
+                   String internalName = entry.getName().replace(".class", "");
+                   String mappedName = remapper.map(internalName);
+                   if (mappedName == null) mappedName = internalName;
     
-                    jos.putNextEntry(new JarEntry(finalPath));
-                    jos.write(writer.toByteArray());
+                   jos.putNextEntry(new JarEntry(mappedName + ".class"));
+                   jos.write(writer.toByteArray());
                 } else {
                     jos.putNextEntry(new JarEntry(entry.getName()));
                     jos.write(bytes);
