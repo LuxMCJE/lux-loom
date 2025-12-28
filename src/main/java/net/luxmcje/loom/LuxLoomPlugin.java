@@ -37,6 +37,12 @@ public class LuxLoomPlugin implements Plugin<Project> {
             Path mappedClient = cacheDir.resolve("minecraft-" + mcVersion + "-lux.jar");
             Path sourcesJar = cacheDir.resolve("minecraft-" + mcVersion + "-sources.jar");
 
+            project.getDependencies().getExtensions().add("minecraft", new Object() {
+                public String call(String version) {
+                    return "com.mojang:minecraft:" + version;
+                }
+            });
+
             try {
                 Files.createDirectories(cacheDir);
         
