@@ -15,7 +15,6 @@ public class LuxRemapper {
 
     public void loadTinyMappings(File tinyFile) throws IOException {
         InputStream is = new FileInputStream(tinyFile);
-        
         if (tinyFile.getName().endsWith(".gz")) {
             is = new GZIPInputStream(is);
         }
@@ -24,46 +23,49 @@ public class LuxRemapper {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty() || line.startsWith("#")) continue;
-                
                 String[] parts = line.split("\t");
                 if (parts.length >= 3 && (parts[0].equals("CLASS") || parts[0].equals("c"))) {
-                    String officialName = parts[1];
-                    String namedName = parts[parts.length - 1];
-                    mappingMap.put(officialName, namedName);
+                    mappingMap.put(parts[1], parts[parts.length - 1]);
                 }
             }
         }
     }
-    
+
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
-     
+
         try (JarFile jarFile = new JarFile(inputJar);
              JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
-        
+
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
+                String entryName = entry.getName();
+
                 if (entry.isDirectory()) continue;
+
+                if (entryName.startsWith("META-INF/") && (entryName.endsWith(".SF") || entryName.endsWith(".RSA") || entryName.endsWith(".DSA"))) {
+                    continue;
+                }
 
                 byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
 
-                if (entry.getName().endsWith(".class")) {
+                if (entryName.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(0); 
+                    ClassWriter writer = new ClassWriter(0);
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
-                
+                    
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
-                
-                    String internalName = entry.getName().replace(".class", "");
+
+                    String internalName = entryName.replace(".class", "");
                     String mappedName = remapper.map(internalName);
                     if (mappedName == null) mappedName = internalName;
-                
+
                     jos.putNextEntry(new JarEntry(mappedName + ".class"));
                     jos.write(writer.toByteArray());
                 } else {
-                    if (!entry.getName().startsWith("META-INF/")) {
-                        jos.putNextEntry(new JarEntry(entry.getName()));
+                    if (!entryName.equals("META-INF/MANIFEST.MF")) {
+                        jos.putNextEntry(new JarEntry(entryName));
                         jos.write(bytes);
                     }
                 }
