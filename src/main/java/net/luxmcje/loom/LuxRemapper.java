@@ -37,7 +37,7 @@ public class LuxRemapper {
     
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
-    
+     
         try (JarFile jarFile = new JarFile(inputJar);
              JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
         
@@ -52,6 +52,7 @@ public class LuxRemapper {
                     ClassReader reader = new ClassReader(bytes);
                     ClassWriter writer = new ClassWriter(0); 
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
+                
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
                 
                     String internalName = entry.getName().replace(".class", "");
