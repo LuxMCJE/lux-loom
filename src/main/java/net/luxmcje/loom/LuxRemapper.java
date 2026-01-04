@@ -40,33 +40,32 @@ public class LuxRemapper {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
-                String name = entry.getName();
+                String entryName = entry.getName();
 
                 if (entry.isDirectory()) continue;
 
-                if (name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))) {
+                if (entryName.startsWith("META-INF/") && (entryName.endsWith(".SF") || entryName.endsWith(".RSA") || entryName.endsWith(".DSA"))) {
                     continue;
                 }
 
                 byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
 
-                if (name.endsWith(".class")) {
+                if (entryName.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
                     ClassWriter writer = new ClassWriter(0);
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
                     
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
 
-                    String internalName = name.replace(".class", "");
+                    String internalName = entryName.replace(".class", "");
                     String mappedName = remapper.map(internalName);
-                    
                     if (mappedName == null) mappedName = internalName;
 
                     jos.putNextEntry(new JarEntry(mappedName + ".class"));
                     jos.write(writer.toByteArray());
                 } else {
-                    if (!name.equals("META-INF/MANIFEST.MF")) {
-                        jos.putNextEntry(new JarEntry(name));
+                    if (!entryName.equals("META-INF/MANIFEST.MF")) {
+                        jos.putNextEntry(new JarEntry(entryName));
                         jos.write(bytes);
                     }
                 }
