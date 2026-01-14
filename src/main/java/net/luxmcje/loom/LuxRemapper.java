@@ -52,15 +52,15 @@ public class LuxRemapper {
 
                 if (name.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(0);
+                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES); 
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
-                    
+    
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
-
+    
                     String internalName = name.replace(".class", "");
                     String mappedName = remapper.map(internalName);
                     if (mappedName == null) mappedName = internalName;
-
+    
                     jos.putNextEntry(new JarEntry(mappedName + ".class"));
                     jos.write(writer.toByteArray());
                 } else {
