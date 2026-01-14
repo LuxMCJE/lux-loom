@@ -52,7 +52,7 @@ public class LuxRemapper {
 
                 if (name.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(0); 
+                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); 
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
     
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
@@ -64,7 +64,7 @@ public class LuxRemapper {
                     if (mappedName == null) mappedName = internalName;
     
                     jos.putNextEntry(new JarEntry(mappedName + ".class"));
-                    jos.write(writer.toByteArray());
+                    jos.write(remappedBytes);
                 } else {
                     if (!name.equals("META-INF/MANIFEST.MF")) {
                         jos.putNextEntry(new JarEntry(name));
