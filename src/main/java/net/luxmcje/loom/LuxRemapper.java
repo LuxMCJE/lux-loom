@@ -56,6 +56,8 @@ public class LuxRemapper {
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
     
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
+
+                    byte[] remappedBytes = writer.toByteArray();
     
                     String internalName = name.replace(".class", "");
                     String mappedName = remapper.map(internalName);
@@ -72,5 +74,5 @@ public class LuxRemapper {
                 jos.closeEntry();
             }
         }
-    }
+    }  
 }
