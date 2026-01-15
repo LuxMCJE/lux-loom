@@ -52,7 +52,7 @@ public class LuxRemapper {
                 if (name.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
                     
-                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
+                    ClassWriter writer = new ClassWriter(0) {
                         @Override
                         protected String getCommonSuperClass(String type1, String type2) {
                             return "java/lang/Object"; 
@@ -61,7 +61,7 @@ public class LuxRemapper {
 
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
     
-                    reader.accept(cv, ClassReader.EXPAND_FRAMES);
+                    reader.accept(cv, ClassReader.SKIP_FRAMES);
 
                     byte[] remappedBytes = writer.toByteArray();
     
