@@ -3,7 +3,6 @@ package net.luxmcje.loom;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.commons.SimpleRemapper;
-
 import java.io.*;
 import java.util.*;
 import java.util.jar.*;
@@ -43,7 +42,7 @@ public class LuxRemapper {
                 String name = entry.getName();
 
                 if (entry.isDirectory()) continue;
-
+                
                 if (name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))) {
                     continue;
                 }
@@ -52,7 +51,14 @@ public class LuxRemapper {
 
                 if (name.endsWith(".class")) {
                     ClassReader reader = new ClassReader(bytes);
-                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS); 
+                    
+                    ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES) {
+                        @Override
+                        protected String getCommonSuperClass(String type1, String type2) {
+                            return "java/lang/Object"; 
+                        }
+                    };
+
                     ClassVisitor cv = new ClassRemapper(writer, remapper);
     
                     reader.accept(cv, ClassReader.EXPAND_FRAMES);
