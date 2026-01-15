@@ -50,22 +50,28 @@ public class LuxRemapper {
                 byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
 
                 if (name.endsWith(".class")) {
-                    ClassReader reader = new ClassReader(bytes);
-                    
-                    ClassWriter writer = new ClassWriter(reader, 0);
+                    try {
+                        ClassReader reader = new ClassReader(bytes);
+                        
+                        ClassWriter writer = new ClassWriter(reader, 0);
 
-                    ClassVisitor cv = new ClassRemapper(writer, remapper);
-    
-                    reader.accept(cv, 0); 
+                        ClassVisitor cv = new ClassRemapper(writer, remapper);
+        
+                        reader.accept(cv, 0); 
 
-                    byte[] remappedBytes = writer.toByteArray();
-    
-                    String internalName = name.replace(".class", "");
-                    String mappedName = mappingMap.get(internalName);
-                    if (mappedName == null) mappedName = internalName;
-    
-                    jos.putNextEntry(new JarEntry(mappedName + ".class"));
-                    jos.write(remappedBytes);
+                        byte[] remappedBytes = writer.toByteArray();
+        
+                        String internalName = name.replace(".class", "");
+                        
+                        String mappedName = remapper.map(internalName);
+                        if (mappedName == null) mappedName = internalName;
+        
+                        jos.putNextEntry(new JarEntry(mappedName + ".class"));
+                        jos.write(remappedBytes);
+                    } catch (Exception e) {
+                        jos.putNextEntry(new JarEntry(name));
+                        jos.write(bytes);
+                    }
                 } else {
                     if (!name.equals("META-INF/MANIFEST.MF")) {
                         jos.putNextEntry(new JarEntry(name));
