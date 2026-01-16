@@ -32,7 +32,7 @@ public class LuxRemapper {
 
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
-        Map<String, byte[]> memoryCache = new LinkedHashMap<>();
+        Map<String, byte[]> processedFiles = new LinkedHashMap<>();
 
         try (JarFile jarFile = new JarFile(inputJar)) {
             Enumeration<JarEntry> entries = jarFile.entries();
@@ -40,20 +40,20 @@ public class LuxRemapper {
                 JarEntry entry = entries.nextElement();
                 if (entry.isDirectory()) continue;
                 try (InputStream is = jarFile.getInputStream(entry)) {
-                    memoryCache.put(entry.getName(), is.readAllBytes());
+                    processedFiles.put(entry.getName(), is.readAllBytes());
                 }
             }
         }
 
         try (JarOutputStream jos = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(outputJar)))) {
-            for (Map.Entry<String, byte[]> entry : memoryCache.entrySet()) {
+            for (Map.Entry<String, byte[]> entry : processedFiles.entrySet()) {
                 String name = entry.getKey();
                 byte[] bytes = entry.getValue();
 
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS); 
+                        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
                         reader.accept(cv, ClassReader.EXPAND_FRAMES);
 
@@ -65,6 +65,7 @@ public class LuxRemapper {
                         jos.putNextEntry(new JarEntry(mappedName + ".class"));
                         jos.write(remappedBytes);
                     } catch (Exception e) {
+                        System.err.println("[LuxLoom] Recovery: Copying original " + name);
                         jos.putNextEntry(new JarEntry(name));
                         jos.write(bytes);
                     }
