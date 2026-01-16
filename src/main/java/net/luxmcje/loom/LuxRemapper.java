@@ -41,13 +41,20 @@ public class LuxRemapper {
                 JarEntry entry = entries.nextElement();
                 String name = entry.getName();
 
-                if (entry.isDirectory()) continue;
+                if (entry.isDirectory()) {
+                    jos.putNextEntry(new JarEntry(name));
+                    jos.closeEntry();
+                    continue;
+                }
                 
                 if (name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))) {
                     continue;
                 }
 
-                byte[] bytes = jarFile.getInputStream(entry).readAllBytes();
+                byte[] bytes;
+                try (InputStream is = jarFile.getInputStream(entry)) {
+                    bytes = is.readAllBytes();
+                }
 
                 if (name.endsWith(".class")) {
                     try {
@@ -59,7 +66,7 @@ public class LuxRemapper {
                         byte[] remappedBytes = writer.toByteArray();
                         
                         if (remappedBytes == null || remappedBytes.length < 10) {
-                            throw new IOException("Generated class is too small");
+                            throw new IOException("Class too small");
                         }
                         
                         String internalName = name.replace(".class", "");
@@ -69,7 +76,6 @@ public class LuxRemapper {
                         jos.putNextEntry(new JarEntry(mappedName + ".class"));
                         jos.write(remappedBytes);
                     } catch (Exception e) {
-                        System.err.println("[LuxLoom] Failed to remap " + name + ", copying original: " + e.getMessage());
                         jos.putNextEntry(new JarEntry(name));
                         jos.write(bytes);
                     }
