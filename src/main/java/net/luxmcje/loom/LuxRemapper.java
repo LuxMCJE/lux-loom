@@ -68,6 +68,8 @@ public class LuxRemapper {
             }
         }
 
+        System.out.println("Processing " + name + " size: " + bytes.length);
+
         try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
             for (Map.Entry<String, byte[]> entry : outEntries.entrySet()) {
                 JarEntry je = new JarEntry(entry.getKey());
