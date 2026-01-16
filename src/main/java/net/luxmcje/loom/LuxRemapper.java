@@ -46,6 +46,10 @@ public class LuxRemapper {
                     bytes = is.readAllBytes();
                 }
 
+                if (bytes.length == 0) {
+                    System.err.println("[LuxLoom] Critical: File " + name + " is empty in source JAR!");
+                }
+
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
@@ -54,12 +58,13 @@ public class LuxRemapper {
                         reader.accept(cv, 0);
 
                         byte[] remappedBytes = writer.toByteArray();
-                        String mappedName = remapper.map(name.replace(".class", ""));
-                        if (mappedName == null) mappedName = name.replace(".class", "");
+                        String internalName = name.replace(".class", "");
+                        String mappedName = remapper.map(internalName);
+                        if (mappedName == null) mappedName = internalName;
                     
                         outEntries.put(mappedName + ".class", remappedBytes);
                     } catch (Exception e) {
-                        System.err.println("Skipping corrupted class: " + name);
+                        System.err.println("[LuxLoom] Skipping corrupted class: " + name + " (Size: " + bytes.length + " bytes)");
                         outEntries.put(name, bytes);
                     }
                 } else if (!name.startsWith("META-INF/")) {
@@ -67,8 +72,6 @@ public class LuxRemapper {
                 }
             }
         }
-
-        System.out.println("Processing " + name + " size: " + bytes.length);
 
         try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
             for (Map.Entry<String, byte[]> entry : outEntries.entrySet()) {
@@ -78,5 +81,6 @@ public class LuxRemapper {
                 jos.closeEntry();
             }
         }
+        System.out.println("[LuxLoom] Remapping finished. Total entries: " + outEntries.size());
     }
 }
