@@ -32,24 +32,14 @@ public class LuxRemapper {
 
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
+        Map<String, byte[]> outEntries = new HashMap<>();
 
-        try (JarFile jarFile = new JarFile(inputJar);
-             JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
-
+        try (JarFile jarFile = new JarFile(inputJar)) {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
                 String name = entry.getName();
-
-                if (entry.isDirectory()) {
-                    jos.putNextEntry(new JarEntry(name));
-                    jos.closeEntry();
-                    continue;
-                }
-                
-                if (name.startsWith("META-INF/") && (name.endsWith(".SF") || name.endsWith(".RSA") || name.endsWith(".DSA"))) {
-                    continue;
-                }
+                if (entry.isDirectory()) continue;
 
                 byte[] bytes;
                 try (InputStream is = jarFile.getInputStream(entry)) {
@@ -59,34 +49,32 @@ public class LuxRemapper {
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(reader, 0);
+                        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
-                        reader.accept(cv, 0); 
+                        reader.accept(cv, 0);
 
                         byte[] remappedBytes = writer.toByteArray();
-                        
-                        if (remappedBytes == null || remappedBytes.length < 10) {
-                            throw new IOException("Class too small");
-                        }
-                        
-                        String internalName = name.replace(".class", "");
-                        String mappedName = remapper.map(internalName);
-                        if (mappedName == null) mappedName = internalName;
-        
-                        jos.putNextEntry(new JarEntry(mappedName + ".class"));
-                        jos.write(remappedBytes);
+                        String mappedName = remapper.map(name.replace(".class", ""));
+                        if (mappedName == null) mappedName = name.replace(".class", "");
+                    
+                        outEntries.put(mappedName + ".class", remappedBytes);
                     } catch (Exception e) {
-                        jos.putNextEntry(new JarEntry(name));
-                        jos.write(bytes);
+                        System.err.println("Skipping corrupted class: " + name);
+                        outEntries.put(name, bytes);
                     }
-                } else {
-                    if (!name.equals("META-INF/MANIFEST.MF")) {
-                        jos.putNextEntry(new JarEntry(name));
-                        jos.write(bytes);
-                    }
+                } else if (!name.startsWith("META-INF/")) {
+                    outEntries.put(name, bytes);
                 }
+            }
+        }
+
+        try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
+            for (Map.Entry<String, byte[]> entry : outEntries.entrySet()) {
+                JarEntry je = new JarEntry(entry.getKey());
+                jos.putNextEntry(je);
+                jos.write(entry.getValue());
                 jos.closeEntry();
             }
         }
-    }  
+    }
 }
