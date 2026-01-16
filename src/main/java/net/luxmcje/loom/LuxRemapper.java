@@ -53,7 +53,7 @@ public class LuxRemapper {
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+                        ClassWriter writer = new ClassWriter(reader, 0);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
                         reader.accept(cv, ClassReader.EXPAND_FRAMES);
 
