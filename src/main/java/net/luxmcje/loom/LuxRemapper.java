@@ -32,55 +32,48 @@ public class LuxRemapper {
 
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
-        Map<String, byte[]> outEntries = new HashMap<>();
+        Map<String, byte[]> memoryCache = new HashMap<>();
 
         try (JarFile jarFile = new JarFile(inputJar)) {
             Enumeration<JarEntry> entries = jarFile.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
-                String name = entry.getName();
                 if (entry.isDirectory()) continue;
-
-                byte[] bytes;
                 try (InputStream is = jarFile.getInputStream(entry)) {
-                    bytes = is.readAllBytes();
-                }
-
-                if (bytes.length == 0) {
-                    System.err.println("[LuxLoom] Critical: File " + name + " is empty in source JAR!");
-                }
-
-                if (name.endsWith(".class")) {
-                    try {
-                        ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-                        ClassVisitor cv = new ClassRemapper(writer, remapper);
-                        reader.accept(cv, 0);
-
-                        byte[] remappedBytes = writer.toByteArray();
-                        String internalName = name.replace(".class", "");
-                        String mappedName = remapper.map(internalName);
-                        if (mappedName == null) mappedName = internalName;
-                    
-                        outEntries.put(mappedName + ".class", remappedBytes);
-                    } catch (Exception e) {
-                        System.err.println("[LuxLoom] Skipping corrupted class: " + name + " (Size: " + bytes.length + " bytes)");
-                        outEntries.put(name, bytes);
-                    }
-                } else if (!name.startsWith("META-INF/")) {
-                    outEntries.put(name, bytes);
+                    memoryCache.put(entry.getName(), is.readAllBytes());
                 }
             }
         }
 
         try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
-            for (Map.Entry<String, byte[]> entry : outEntries.entrySet()) {
-                JarEntry je = new JarEntry(entry.getKey());
-                jos.putNextEntry(je);
-                jos.write(entry.getValue());
+            for (Map.Entry<String, byte[]> entry : memoryCache.entrySet()) {
+                String name = entry.getKey();
+                byte[] bytes = entry.getValue();
+
+                if (name.endsWith(".class")) {
+                    try {
+                        ClassReader reader = new ClassReader(bytes);
+                        ClassWriter writer = new ClassWriter(0); 
+                        ClassVisitor cv = new ClassRemapper(writer, remapper);
+                        reader.accept(cv, 0);
+
+                        byte[] remappedBytes = writer.toByteArray();
+                        String mappedName = remapper.map(name.replace(".class", ""));
+                        if (mappedName == null) mappedName = name.replace(".class", "");
+                    
+                        jos.putNextEntry(new JarEntry(mappedName + ".class"));
+                        jos.write(remappedBytes);
+                    } catch (Exception e) {
+                        jos.putNextEntry(new JarEntry(name));
+                        jos.write(bytes);
+                    }
+                } else {
+                    jos.putNextEntry(new JarEntry(name));
+                    jos.write(bytes);
+                }
                 jos.closeEntry();
             }
         }
-        System.out.println("[LuxLoom] Remapping finished. Total entries: " + outEntries.size());
+        System.out.println("[LuxLoom] Success! Remapped " + memoryCache.size() + " files.");
     }
 }
