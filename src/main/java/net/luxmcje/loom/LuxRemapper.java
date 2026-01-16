@@ -55,7 +55,7 @@ public class LuxRemapper {
                         ClassReader reader = new ClassReader(bytes);
                         ClassWriter writer = new ClassWriter(reader, 0);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
-                        reader.accept(cv, ClassReader.EXPAND_FRAMES);
+                        reader.accept(cv, ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
 
                         byte[] remappedBytes = writer.toByteArray();
                         String internalName = name.replace(".class", "");
