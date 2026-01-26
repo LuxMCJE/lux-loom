@@ -33,16 +33,18 @@ public class LuxRemapper {
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
         Map<String, byte[]> memoryCache = new LinkedHashMap<>();
-
+        
         try (JarFile jarFile = new JarFile(inputJar)) {
-            jarFile.stream().forEach(entry -> {
+            var entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                var entry = entries.nextElement();
                 try (InputStream is = jarFile.getInputStream(entry)) {
                     memoryCache.put(entry.getName(), is.readAllBytes());
-                } catch (IOException e) { e.printStackTrace(); }
-            });
+                }
+            }
         }
 
-        try (JarOutputStream jos = new JarOutputStream(new FileOutputStream(outputJar))) {
+        try (JarOutputStream jos = new JarOutputStream(new BufferedOutputStream(new FileOutputStream(outputJar)))) {
             for (var entry : memoryCache.entrySet()) {
                 String name = entry.getKey();
                 byte[] bytes = entry.getValue();
@@ -50,17 +52,18 @@ public class LuxRemapper {
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+                        ClassWriter writer = new ClassWriter(reader, 0); 
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
                     
-                        reader.accept(cv, ClassReader.EXPAND_FRAMES);
+                        reader.accept(cv, 0);
 
                         byte[] remappedBytes = writer.toByteArray();
-                        String mappedName = remapper.map(name.replace(".class", ""));
-                        jos.putNextEntry(new JarEntry((mappedName == null ? name : mappedName + ".class")));
+                        String internalName = name.replace(".class", "");
+                        String mappedName = remapper.map(internalName);
+                    
+                        jos.putNextEntry(new JarEntry((mappedName != null ? mappedName : internalName) + ".class"));
                         jos.write(remappedBytes);
-                    } catch (Throwable t) {
-                        System.err.println("[LuxLoom-Debug] Failed class: " + name + " | Reason: " + t.getMessage());
+                    } catch (Exception e) {
                         jos.putNextEntry(new JarEntry(name));
                         jos.write(bytes);
                     }
