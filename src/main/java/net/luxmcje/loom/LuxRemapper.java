@@ -33,7 +33,7 @@ public class LuxRemapper {
     public void remapJar(File inputJar, File outputJar) throws IOException {
         SimpleRemapper remapper = new SimpleRemapper(mappingMap);
         Map<String, byte[]> memoryCache = new LinkedHashMap<>();
-        
+
         try (JarFile jarFile = new JarFile(inputJar)) {
             var entries = jarFile.entries();
             while (entries.hasMoreElements()) {
@@ -52,15 +52,14 @@ public class LuxRemapper {
                 if (name.endsWith(".class")) {
                     try {
                         ClassReader reader = new ClassReader(bytes);
-                        ClassWriter writer = new ClassWriter(reader, 0); 
+                        ClassWriter writer = new ClassWriter(reader, 0);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
-                    
                         reader.accept(cv, 0);
 
                         byte[] remappedBytes = writer.toByteArray();
                         String internalName = name.replace(".class", "");
                         String mappedName = remapper.map(internalName);
-                    
+                     
                         jos.putNextEntry(new JarEntry((mappedName != null ? mappedName : internalName) + ".class"));
                         jos.write(remappedBytes);
                     } catch (Exception e) {
@@ -74,5 +73,5 @@ public class LuxRemapper {
                 jos.closeEntry();
             }
         }
-    }
+    }        
 }
