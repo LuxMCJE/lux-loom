@@ -55,7 +55,8 @@ public class LuxRemapper {
                         ClassReader reader = new ClassReader(bytes);
                         ClassWriter writer = new ClassWriter(reader, 0);
                         ClassVisitor cv = new ClassRemapper(writer, remapper);
-                        reader.accept(cv, ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
+                        
+                        reader.accept(cv, ClassReader.SKIP_FRAMES);
 
                         byte[] remappedBytes = writer.toByteArray();
                         String internalName = name.replace(".class", "");
@@ -65,7 +66,7 @@ public class LuxRemapper {
                         jos.putNextEntry(new JarEntry(mappedName + ".class"));
                         jos.write(remappedBytes);
                     } catch (Exception e) {
-                        System.err.println("[LuxLoom] Recovery: Copying original " + name);
+                        System.err.println("[LuxLoom] Critical Failure on " + name + " -> Copying original to prevent corruption.");
                         jos.putNextEntry(new JarEntry(name));
                         jos.write(bytes);
                     }
