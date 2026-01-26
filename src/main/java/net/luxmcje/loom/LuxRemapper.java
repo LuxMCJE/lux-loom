@@ -66,7 +66,9 @@ public class LuxRemapper {
                         jos.putNextEntry(new JarEntry(mappedName + ".class"));
                         jos.write(remappedBytes);
                     } catch (Exception e) {
-                        System.err.println("[LuxLoom] Critical Failure on " + name + " -> Copying original to prevent corruption.");
+                        System.err.println("[LuxLoom] Error processing class: " + name);
+                        System.err.println("[LuxLoom] Reason: " + e.getMessage());
+                        e.printStackTrace();
                         jos.putNextEntry(new JarEntry(name));
                         jos.write(bytes);
                     }
